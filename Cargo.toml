@@ -1,0 +1,7 @@
+[package]
+name = "open-world-game--star--01-11-2025--8133cce0-b026-45b9-b68e-43d819f21160"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+syphon = { package = "syphon-sys", git = "https://github.com/ryuuart/evoker", branch = "main" }
