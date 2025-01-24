@@ -1,4 +1,3 @@
-use syphon::metal_server::SyphonMetalServer;
 use taffy::prelude::*;
 
 mod draw;
@@ -32,10 +31,7 @@ fn build_tree(tree: &mut TaffyTree<()>) -> Result<NodeId, taffy::TaffyError> {
 
     Ok(container)
 }
+
 fn main() {
-    let syphon_server = SyphonMetalServer::new("Open World Game");
-
     taffy_test();
-
-    syphon_server.stop();
 }

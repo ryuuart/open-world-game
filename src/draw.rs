@@ -1,16 +1,19 @@
 use std::fs;
 
 use objc2::{rc::Retained, runtime::ProtocolObject};
-use objc2_metal::{MTLCommandQueue, MTLDevice};
+use objc2_core_foundation::{CGFloat, CGPoint, CGSize};
+use objc2_foundation::NSRect;
+use objc2_metal::{MTLCommandQueue, MTLDevice, MTLTexture};
 use skia_safe::{
     gpu::{
         direct_contexts,
-        mtl::{self, BackendContext},
+        mtl::{self, BackendContext, TextureInfo},
         surfaces, BackendTexture, Budgeted, SurfaceOrigin,
     },
     surface::BackendHandleAccess,
     Canvas, Color4f, ColorSpace, ISize, ImageInfo, Paint, PaintStyle, Surface, SurfaceProps,
 };
+use syphon::metal_server::SyphonMetalServer;
 use taffy::prelude::*;
 
 struct MetalContext {
@@ -39,10 +42,6 @@ impl MetalContext {
             sk_metal_backend_context,
         }
     }
-}
-
-pub struct Studio {
-    metal_context: MetalContext,
 }
 
 pub struct Drawing {
@@ -79,10 +78,20 @@ impl Drawing {
     }
 }
 
+pub struct Studio {
+    metal_context: MetalContext,
+    syphon_server: Retained<SyphonMetalServer>,
+}
+
 impl Studio {
     pub fn new() -> Self {
+        let metal_context = MetalContext::new();
+        let syphon_server =
+            SyphonMetalServer::from_device("Open World Game", &metal_context.metal_device);
+
         Self {
-            metal_context: MetalContext::new(),
+            metal_context,
+            syphon_server,
         }
     }
 
@@ -106,6 +115,39 @@ impl Studio {
         .expect("Failed to create surface from Metal gpu directly.");
 
         Drawing::new(surface)
+    }
+
+    pub fn publish_drawing(self, drawing: &mut Drawing) {
+        let texture = drawing
+            .get_texture()
+            .expect("Couldn't retrieve internal texture from drawing.");
+        let size = CGSize::new(
+            CGFloat::from(texture.width()),
+            CGFloat::from(texture.height()),
+        );
+        let texture = texture
+            .metal_texture_info()
+            .expect("Couldn't use internal texture from GPU.");
+        let texture = texture.texture() as *const ProtocolObject<dyn MTLTexture>;
+
+        self.syphon_server.publish_frame_texture(
+            texture,
+            Retained::as_ptr(
+                &self
+                    .metal_context
+                    .command_queue
+                    .commandBuffer()
+                    .expect("Couldn't use command buffer on Metal GPU."),
+            ),
+            NSRect::new(CGPoint::default(), size),
+            true,
+        )
+    }
+}
+
+impl Drop for Studio {
+    fn drop(&mut self) {
+        self.syphon_server.stop();
     }
 }
 
@@ -131,4 +173,5 @@ pub fn draw_tree(layout: &Layout) {
     );
 
     drawing.export_img("../image.png");
+    studio.publish_drawing(&mut drawing);
 }
