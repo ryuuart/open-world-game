@@ -1,6 +1,7 @@
 use taffy::prelude::*;
 
-mod draw;
+mod drawing;
+mod studio;
 
 fn taffy_test() {
     let mut tree: TaffyTree<()> = TaffyTree::new();
@@ -11,7 +12,7 @@ fn taffy_test() {
         .expect("Couldn't compute layout");
     tree.print_tree(root);
 
-    draw::draw_tree(tree.layout(root).expect("Couldn't get the layout"));
+    drawing::draw_tree(tree.layout(root).expect("Couldn't get the layout"));
 }
 
 fn build_tree(tree: &mut TaffyTree<()>) -> Result<NodeId, taffy::TaffyError> {

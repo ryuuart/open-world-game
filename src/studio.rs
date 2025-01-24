@@ -7,14 +7,13 @@ use objc2_metal::{MTLCommandQueue, MTLDevice, MTLTexture};
 use skia_safe::{
     gpu::{
         direct_contexts,
-        mtl::{self, BackendContext, TextureInfo},
+        mtl::{self, BackendContext},
         surfaces, BackendTexture, Budgeted, SurfaceOrigin,
     },
     surface::BackendHandleAccess,
-    Canvas, Color4f, ColorSpace, ISize, ImageInfo, Paint, PaintStyle, Surface, SurfaceProps,
+    Canvas, ColorSpace, ISize, ImageInfo, Surface, SurfaceProps,
 };
 use syphon::metal_server::SyphonMetalServer;
-use taffy::prelude::*;
 
 struct MetalContext {
     metal_device: Retained<ProtocolObject<dyn MTLDevice>>,
@@ -149,29 +148,4 @@ impl Drop for Studio {
     fn drop(&mut self) {
         self.syphon_server.stop();
     }
-}
-
-pub fn draw_tree(layout: &Layout) {
-    let studio = Studio::new();
-    let mut drawing = studio.create_drawing(layout.size.width as i32, layout.size.height as i32);
-
-    let canvas = &drawing.canvas();
-    let mut paint = Paint::new(
-        Color4f::new(0.0, 0.0, 1.0, 1.0),
-        ColorSpace::new_srgb().as_ref(),
-    );
-    paint.set_style(PaintStyle::Fill);
-
-    canvas.draw_rect(
-        skia_safe::Rect {
-            top: layout.padding.top,
-            right: layout.size.width - layout.padding.right,
-            bottom: layout.size.height - layout.padding.bottom,
-            left: layout.padding.left,
-        },
-        &paint,
-    );
-
-    drawing.export_img("../image.png");
-    studio.publish_drawing(&mut drawing);
 }
