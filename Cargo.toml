@@ -13,3 +13,4 @@ objc2-quartz-core = "0.3.0"
 skia-safe = { version = "0.81.0", features = ["all-macos"] }
 syphon = { package = "syphon-sys", git = "https://github.com/ryuuart/evoker", branch = "main" }
 taffy = { version = "0.7.5", features = ["serde"] }
+winit = "0.30.8"

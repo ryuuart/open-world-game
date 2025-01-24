@@ -3,7 +3,7 @@ use std::fs;
 use objc2::{rc::Retained, runtime::ProtocolObject};
 use objc2_core_foundation::{CGFloat, CGPoint, CGSize};
 use objc2_foundation::NSRect;
-use objc2_metal::{MTLCommandQueue, MTLDevice, MTLTexture};
+use objc2_metal::{MTLCommandBuffer, MTLCommandQueue, MTLDevice, MTLTexture};
 use skia_safe::{
     gpu::{
         direct_contexts,
@@ -53,7 +53,8 @@ impl Drawing {
     }
 
     pub fn get_texture(&mut self) -> Option<BackendTexture> {
-        surfaces::get_backend_texture(&mut self.surface, BackendHandleAccess::FlushWrite)
+        self.surface.direct_context().unwrap().flush_and_submit();
+        surfaces::get_backend_texture(&mut self.surface, BackendHandleAccess::FlushRead)
     }
 
     pub fn canvas(&mut self) -> &Canvas {
@@ -116,7 +117,12 @@ impl Studio {
         Drawing::new(surface)
     }
 
-    pub fn publish_drawing(self, drawing: &mut Drawing) {
+    pub fn publish_drawing(&self, drawing: &mut Drawing) {
+        let mtl_command_buffer = self
+            .metal_context
+            .command_queue
+            .commandBuffer()
+            .expect("Couldn't use command buffer on Metal GPU.");
         let texture = drawing
             .get_texture()
             .expect("Couldn't retrieve internal texture from drawing.");
@@ -127,20 +133,16 @@ impl Studio {
         let texture = texture
             .metal_texture_info()
             .expect("Couldn't use internal texture from GPU.");
-        let texture = texture.texture() as *const ProtocolObject<dyn MTLTexture>;
+        let texture = texture.texture();
+        let texture = texture as *const ProtocolObject<dyn MTLTexture>;
 
         self.syphon_server.publish_frame_texture(
             texture,
-            Retained::as_ptr(
-                &self
-                    .metal_context
-                    .command_queue
-                    .commandBuffer()
-                    .expect("Couldn't use command buffer on Metal GPU."),
-            ),
-            NSRect::new(CGPoint::default(), size),
+            Retained::as_ptr(&mtl_command_buffer),
+            NSRect::new(CGPoint { x: 0.0, y: 0.0 }, size),
             true,
-        )
+        );
+        mtl_command_buffer.commit();
     }
 }
 

@@ -1,14 +1,15 @@
-use crate::studio::Studio;
-use skia_safe::{Color4f, ColorSpace, Paint, PaintStyle};
+use crate::{
+    studio::{Drawing, Studio},
+    window,
+};
+use skia_safe::{Canvas, Color4f, ColorSpace, Paint, PaintStyle};
 use taffy::prelude::*;
 
-pub fn draw_tree(layout: &Layout) {
-    let studio = Studio::new();
-    let mut drawing = studio.create_drawing(layout.size.width as i32, layout.size.height as i32);
+pub fn draw_tree(drawing: &mut Drawing, layout: &Layout) {
+    let canvas = drawing.canvas();
 
-    let canvas = &drawing.canvas();
     let mut paint = Paint::new(
-        Color4f::new(0.0, 0.0, 1.0, 1.0),
+        Color4f::new(0.0, 0.0, 1.0, 0.5),
         ColorSpace::new_srgb().as_ref(),
     );
     paint.set_style(PaintStyle::Fill);
@@ -22,7 +23,4 @@ pub fn draw_tree(layout: &Layout) {
         },
         &paint,
     );
-
-    drawing.export_img("../image.png");
-    studio.publish_drawing(&mut drawing);
 }
